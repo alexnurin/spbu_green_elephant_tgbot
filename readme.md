@@ -1,4 +1,4 @@
-##Установка и запуск
+Установка и запуск
 
     git clone https://github.com/alexnurin/spbu_green_elephant_tgbot.git
  
