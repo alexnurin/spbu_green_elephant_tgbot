@@ -7,5 +7,9 @@
     git checkout telebot
     
     pip install -r requirements.txt
+    
+    cd src
+    
+    echo "***" > secret.py
  
-    python src/bot_run.py
+    python bot_run.py
