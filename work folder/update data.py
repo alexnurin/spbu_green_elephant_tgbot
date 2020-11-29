@@ -48,7 +48,7 @@ def infinitive_form(form):
 def fix_line(line):
     n = len(line)
     key_words = ["лекция"]
-    ignore_words = ["перерыв", "английский", "физическая", "консультация"]
+    ignore_words = ["перерыв", "английский", "физический", "консультация"]
     for i in range(n):
         cell = line[i]
         if cell is not None:
@@ -59,6 +59,7 @@ def fix_line(line):
                     for ind_cell in range(0, n):
                         line[ind_cell] = None
                     break
+                # это много циклов - надо пофиксить (наверное)
                 if word in key_words:
                     for ind_cell in range(i + 1, n):
                         line[ind_cell] = cell
@@ -135,6 +136,8 @@ time_of_class = {}
 for group in groups:
     for start in time:
         info = day[group][start]
+        if info is None:
+            continue
         begin = find_time_format(info)
         if begin is None:
             begin = start[:5]
@@ -153,12 +156,15 @@ def main():
         cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
         h, m, s = int(key[0:2]), int(key[3::]), 0
         class_time = timedelta(hours=h, minutes=m, seconds=s)
-        diff = class_time - cur_time
-        print(str(diff))
-        hh, mm, ss = [int(i) for i in str(diff).split(":")]
-        diff = 60 * hh + mm
-        if diff < 15:
-            print(time_of_class[key])
+        if class_time > cur_time:
+            diff = class_time - cur_time
+            print(str(diff))
+            hh, mm, ss = [int(i) for i in str(diff).split(":")]
+            diff = 60 * hh + mm
+            if diff < 15:
+                print(time_of_class[key])
+        else:
+            continue
 
 
 main()
