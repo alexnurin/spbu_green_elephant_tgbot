@@ -1,18 +1,15 @@
 import telebot
 from src.bot_logging import *
 from data.secret import token
-# from bot_system import *
 import openpyxl as op
 import pandas as pd
 import pymorphy2
 from datetime import *
 
 
-'''||||||||||||||||||||||||| MAKE A DATA FRAME FOR CURRENT DAY |||||||||||||||||||||||||'''
-
-
 # infinitive form for keywords
 def infinitive_form(form):
+    morph = pymorphy2.MorphAnalyzer()
     spec_chars = [",", "."]
     form = ''.join([ch for ch in form if ch not in spec_chars])
     form = form.lower()
@@ -50,13 +47,9 @@ def fix_data(raw_data):
     return raw_data
 
 
-'''||||||||||||||||||||||||| MAKE A START TIME DICT  |||||||||||||||||||||||||'''
-
-
 # check time format
 def in_time_format(string):
     indices = [0, 1, 3, 4]
-
     if len(string) == 5:
         flag = True
         for i in indices:
@@ -83,8 +76,10 @@ def find_time_format(cell):
         return None
 
 
-class TimeTable:
+class Table:
     def __init__(self, week_day, sheet):
+        # TODO:relevant ID_numbers
+        self.ID_numbers = [my_id]
         # set a week mods
         week = {0: (0, 1, 6),
                 1: (0, 6, 11),
@@ -122,23 +117,21 @@ class TimeTable:
                 else:
                     self.time_of_class[begin].append([group, start])
 
+    def make_a_newsletter(self, num_of_group, message_):
+        for id_ in self.ID_numbers:
+            bot.send_message(id_, num_of_group + " " + message_)
 
-def text_message_for(num_of_group, message_):
-    bot.send_message(my_id, num_of_group + " " + message_)
-
-
-class CheckingTimetable(TimeTable):
     def check_schedule(self):
         del_keys = []
         for key in self.time_of_class:
             # ct = datetime.now().time()
             # cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
-            cur_time = timedelta(hours=10, minutes=30, seconds=00)
+            cur_time = timedelta(hours=13, minutes=50, seconds=00)
             start_time = datetime.strptime(key, '%H:%M')
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
             if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
                 for group, start in self.time_of_class[key]:
-                    text_message_for(group, with_zoom(self.day[group][start]))
+                    self.make_a_newsletter(group, with_zoom(self.day[group][start]))
                 del_keys.append(key)
 
         for del_key in del_keys:
@@ -205,8 +198,6 @@ if __name__ == '__main__':
     # TODO: логгирование
     print('Start!\n')
     my_id = 794566071
-    # TODO: засунуть в функции
-    morph = pymorphy2.MorphAnalyzer()  # в фунции
     while True:
         # update info of the day
         today = datetime.now()
@@ -218,7 +209,7 @@ if __name__ == '__main__':
         # input current day of week
         cur_week_day = today.weekday()
         # timetable = TimeTable(cur_week_day, sheet_main)
-        timetable = CheckingTimetable(cur_week_day, sheet_main)
+        timetable = Table(cur_week_day, sheet_main)
         # make a dict of ZOOM id
         sheet_ZOOM = wb['ID zoom каналов']
         zm = Zoom(sheet_ZOOM)
