@@ -7,6 +7,7 @@ import pandas as pd
 import pymorphy2
 from datetime import *
 
+
 '''||||||||||||||||||||||||| MAKE A DATA FRAME FOR CURRENT DAY |||||||||||||||||||||||||'''
 
 
@@ -122,6 +123,28 @@ class TimeTable:
                     self.time_of_class[begin].append([group, start])
 
 
+def text_message_for(num_of_group, message_):
+    bot.send_message(my_id, num_of_group + " " + message_)
+
+
+class CheckingTimetable(TimeTable):
+    def check_schedule(self):
+        del_keys = []
+        for key in self.time_of_class:
+            # ct = datetime.now().time()
+            # cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
+            cur_time = timedelta(hours=10, minutes=30, seconds=00)
+            start_time = datetime.strptime(key, '%H:%M')
+            class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
+            if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
+                for group, start in self.time_of_class[key]:
+                    text_message_for(group, with_zoom(self.day[group][start]))
+                del_keys.append(key)
+
+        for del_key in del_keys:
+            del self.time_of_class[del_key]  # pop есть
+
+
 '''||||||||||||||||||||||||| ZOOM |||||||||||||||||||||||||'''
 
 
@@ -143,30 +166,6 @@ class Zoom:
             self.rooms.append(str(int(room)))
             id_ = sheet.cell(row=j, column=2).value
             self.channels[room] = id_
-
-
-'''||||||||||||||||||||||||| MAIN |||||||||||||||||||||||||'''
-
-
-def sending_messages(dt):
-    del_keys = []
-    for key in dt.time_of_class:
-        ct = datetime.now().time()
-        # cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
-        cur_time = timedelta(hours=10, minutes=30, seconds=00)
-        start_time = datetime.strptime(key, '%H:%M')
-        class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
-        if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
-            for group, start in dt.time_of_class[key]:
-                text_message_for(group, with_zoom(dt.day[group][start]))
-            del_keys.append(key)
-
-    for del_key in del_keys:
-        del dt.time_of_class[del_key]  # pop есть
-
-
-def text_message_for(num_of_group, message_):
-    bot.send_message(794566071, num_of_group + " " + message_)
 
 
 '''||||||||||||||||||||||||| BOT |||||||||||||||||||||||||'''
@@ -205,24 +204,25 @@ def another_message(message):
 if __name__ == '__main__':
     # TODO: логгирование
     print('Start!\n')
-
+    my_id = 794566071
     # TODO: засунуть в функции
     morph = pymorphy2.MorphAnalyzer()  # в фунции
     while True:
         # update info of the day
         today = datetime.now()
         # TODO: пояснить ID = 794566071
-        bot.send_message(794566071, today)
+        bot.send_message(my_id, today)
         # open timetable (Расписание осень 2020_2021.xlsx)
         wb = op.load_workbook("Расписание осень 2020_2021.xlsx")
         sheet_main = wb['Математика + МААД']
         # input current day of week
         cur_week_day = today.weekday()
-        timetable = TimeTable(cur_week_day, sheet_main)
+        # timetable = TimeTable(cur_week_day, sheet_main)
+        timetable = CheckingTimetable(cur_week_day, sheet_main)
         # make a dict of ZOOM id
         sheet_ZOOM = wb['ID zoom каналов']
         zm = Zoom(sheet_ZOOM)
         # print(datetime.now().day)
         while today.day == datetime.now().day:
-            sending_messages(timetable)
-            # bot.send_message(794566071, "Пытаемся что-то отправить")
+            timetable.check_schedule()
+            # bot.send_message(my_id, "Пытаемся что-то отправить")
