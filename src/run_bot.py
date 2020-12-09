@@ -35,7 +35,7 @@ class CheckingTimetable(Table):
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
             if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
                 for group, start in self.time_of_class[key]:
-                    text_message_for(group, start,  self.day[group][start])
+                    text_message_for(group, start, self.day[group][start])
                 del_keys.append(key)
 
         for del_key in del_keys:
@@ -45,15 +45,15 @@ class CheckingTimetable(Table):
 telegram_token = token
 
 bot = telebot.TeleBot(telegram_token)
-# TODO: разобраться с логгированием
+
 # logging.basicConfig(level=logging.INFO)
 
 
 keyboard1 = telebot.types.ReplyKeyboardMarkup()
-keyboard1.row('1', '2', '3')
-keyboard1.row('4', '5', '6')
+keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
+keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
 keyboard1.row('все')
-selected_group = 0
+selected_group = []
 
 
 @bot.message_handler(commands=['help'])
@@ -62,37 +62,43 @@ def help_message(message):
     bot.send_message(message.chat.id, '''
 /help
 /announce
+/authorize
 - все команды
 ''')
 
 
+@bot.message_handler(commands=['authorize'])
+def start_authorize(message):
+    bot.send_message(message.chat.id, 'Выберете вашу группу', reply_markup=keyboard1)
+
+
 @bot.message_handler(commands=['announce'])
 def start_message(message):
-    bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
-                                      'выберите, пожалуйста, группу', reply_markup=keyboard1)
+    sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
+                                             'выберите, пожалуйста, группу', reply_markup=keyboard1)
+    bot.register_next_step_handler(sent, send_text)
 
 
 @bot.message_handler(content_types=['text'])
 def send_text(message):
     global selected_group
-    key_ans = ['1', '2', '3', '4', '5', '6', 'все']
+    key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
     if selected_group == 0:
         if message.text not in key_ans:
             bot.send_message(message.chat.id, 'вам нужно выбрать номер группы')
         elif message.text == 'все':
-            selected_group = [1, 2, 3, 4, 5, 6]
+            selected_group = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн']
         else:
-            selected_group = int(message.text)
+            selected_group = [message.text]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
     bot.register_next_step_handler(sent, get_information)
 
 
 @bot.message_handler(content_types=['text'])
 def get_information(message):
-    if selected_group != 0:
-        # for chat_id in [794566071, 636998614]:
-        for chat_id in [794566071]:
-            bot.send_message(chat_id, message.text)
+    # for chat_id in [794566071, 636998614]:
+    for chat_id in [794566071]:
+        bot.send_message(chat_id, message.text)
 
 
 def _polling(bot_):
@@ -121,7 +127,6 @@ if __name__ == '__main__':
         zm = Zoom(sheet_ZOOM)
         while today.day == datetime.now().day:
             timetable.check_schedule()
-
 
 """
 @bot.message_handler(commands=['help', 'start'])
