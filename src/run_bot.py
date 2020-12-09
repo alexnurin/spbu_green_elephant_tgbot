@@ -128,6 +128,7 @@ if __name__ == '__main__':
         while today.day == datetime.now().day:
             timetable.check_schedule()
 
+
 """
 @bot.message_handler(commands=['help', 'start'])
 def help_message(message):
