@@ -1,11 +1,41 @@
 from threading import Thread
 import telebot
 import openpyxl as op
-import logging
 from data.secret import token
 from src.bot_logging import *
 from src.timetable import *
 from datetime import *
+import sqlite3 as sq
+
+
+'''
+file_name = "students_spbu_real.db"
+
+
+def get_telega_from_data(group):
+    all_id_from_group = []
+    for elem in group:
+        with sq.connect(file_name) as con:
+            cur = con.cursor()
+            cur.execute(f"""SELECT telega_id FROM students_mkn WHERE student_group='{elem}' """)
+            results = cur.fetchall()
+            print(results)
+            for i in range(len(results)):
+                if results[i] != (0,):
+                    all_id_from_group.append(results[i][0])
+    return all_id_from_group
+
+
+def add_telega_in_data(students_name, his_id):
+    with sq.connect(file_name) as con:
+        cur = con.cursor()
+        cur.execute(f"""UPDATE students_mkn SET telega_id = '{his_id}' WHERE name= '{students_name}' """)
+'''
+
+
+def text_message_for(num_of_group, time_of_start, message_):
+    message_ = with_zoom(message_)
+    bot.send_message(developer_id, num_of_group + " " + time_of_start + " " + message_)
 
 
 def with_zoom(message):
@@ -15,11 +45,6 @@ def with_zoom(message):
             if word in zm.rooms:
                 return message + " " + zm.channels[int(word)]
     return message
-
-
-def text_message_for(num_of_group, time_of_start, message_):
-    message_ = with_zoom(message_)
-    bot.send_message(developer_id, num_of_group + " " + time_of_start + " " + message_)
 
 
 class CheckingTimetable(Table):
@@ -46,15 +71,6 @@ telegram_token = token
 
 bot = telebot.TeleBot(telegram_token)
 
-# logging.basicConfig(level=logging.INFO)
-
-
-keyboard1 = telebot.types.ReplyKeyboardMarkup()
-keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
-keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
-keyboard1.row('все')
-selected_group = []
-
 
 @bot.message_handler(commands=['help'])
 def help_message(message):
@@ -69,33 +85,48 @@ def help_message(message):
 
 @bot.message_handler(commands=['authorize'])
 def start_authorize(message):
-    bot.send_message(message.chat.id, 'Выберете вашу группу', reply_markup=keyboard1)
+    keyboard2 = telebot.types.ReplyKeyboardMarkup()
+    keyboard2.row("Да", "Нет")
+    sent = bot.send_message(message.chat.id, 'Вы хотите получать уведомления от бота?', reply_markup=keyboard2)
+    bot.register_next_step_handler(sent, add_2_user_list)
+
+
+def add_2_user_list(message):
+    if message.text == "Да":
+        bot.send_message(message.chat.id, "Пока нельзя!")
+        print(message.chat.id)
+    else:
+        bot.send_message(message.chat.id, ":(")
 
 
 @bot.message_handler(commands=['announce'])
 def start_message(message):
-    sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
-                                             'выберите, пожалуйста, группу', reply_markup=keyboard1)
-    bot.register_next_step_handler(sent, send_text)
+    keyboard1 = telebot.types.ReplyKeyboardMarkup()
+    keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
+    keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
+    keyboard1.row('все')
+    if message.chat.id in masters_id:
+        sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
+                                                 'выберите, пожалуйста, группу', reply_markup=keyboard1)
+        bot.register_next_step_handler(sent, send_text)
+    else:
+        bot.send_message(message.chat.id, 'У вас недостаточно прав, чтобы делать объявление :(')
 
 
-@bot.message_handler(content_types=['text'])
 def send_text(message):
-    global selected_group
+    selected_group = []
     key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
-    if selected_group == 0:
-        if message.text not in key_ans:
-            bot.send_message(message.chat.id, 'вам нужно выбрать номер группы')
-        elif message.text == 'все':
-            selected_group = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн']
-        else:
-            selected_group = [message.text]
+    if message.text not in key_ans:
+        bot.send_message(message.chat.id, 'вам нужно выбрать номер группы')
+    elif message.text == 'все':
+        selected_group = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн']
+    else:
+        selected_group = [message.text]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
-    bot.register_next_step_handler(sent, get_information)
+    bot.register_next_step_handler(sent, selected_group, get_information)
 
 
-@bot.message_handler(content_types=['text'])
-def get_information(message):
+def get_information(message, selected_group):
     # for chat_id in [794566071, 636998614]:
     for chat_id in [794566071]:
         bot.send_message(chat_id, message.text)
@@ -113,6 +144,7 @@ if __name__ == '__main__':
     # TODO: логгирование
     print('Start!\n')
     developer_id = 794566071
+    masters_id = [794566071]
     Thread(target=_polling, args=(bot,)).start()
     while True:
         today = datetime.now()
@@ -128,28 +160,7 @@ if __name__ == '__main__':
         while today.day == datetime.now().day:
             timetable.check_schedule()
 
-
 """
-@bot.message_handler(commands=['help', 'start'])
-def help_message(message):
-    save_message(message)
-    bot.send_message(message.chat.id, '''
-/help - все команды
-''')
-
-
-@bot.message_handler(content_types=['text'])
-def send_text(message):
-    if message.text == 'Привет':
-        bot.send_message(message.chat.id, 'Привет, мой создатель')
-    elif message.text == 'Пока':
-        bot.send_message(message.chat.id, 'Прощай, создатель')
-        print(message.chat.id)
-    else:
-        save_message(message)
-        text_reversed = message.text[::-1]
-        bot.send_message(message.chat.id, text_reversed)
-
 
 @bot.message_handler(lambda message: True)
 def another_message(message):
