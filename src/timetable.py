@@ -73,6 +73,8 @@ def find_time_format(cell):
 
 class Table:
     def __init__(self, week_day, sheet):
+        # !!!
+        # week_day = 0
         # TODO:relevant ID_numbers
         # set a week mods
         week = {0: (0, 1, 6),
@@ -120,3 +122,5 @@ class Zoom:
             self.rooms.append(str(int(room)))
             id_ = sheet.cell(row=j, column=2).value
             self.channels[room] = id_
+
+

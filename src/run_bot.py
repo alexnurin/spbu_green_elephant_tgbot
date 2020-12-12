@@ -5,37 +5,15 @@ from data.secret import token
 from src.bot_logging import *
 from src.timetable import *
 from datetime import *
-import sqlite3 as sq
+from src.Func_data_s import *
 
 
-'''
-file_name = "students_spbu_real.db"
-
-
-def get_telega_from_data(group):
-    all_id_from_group = []
-    for elem in group:
-        with sq.connect(file_name) as con:
-            cur = con.cursor()
-            cur.execute(f"""SELECT telega_id FROM students_mkn WHERE student_group='{elem}' """)
-            results = cur.fetchall()
-            print(results)
-            for i in range(len(results)):
-                if results[i] != (0,):
-                    all_id_from_group.append(results[i][0])
-    return all_id_from_group
-
-
-def add_telega_in_data(students_name, his_id):
-    with sq.connect(file_name) as con:
-        cur = con.cursor()
-        cur.execute(f"""UPDATE students_mkn SET telega_id = '{his_id}' WHERE name= '{students_name}' """)
-'''
-
-
-def text_message_for(num_of_group, time_of_start, message_):
+def text_message_for(num_of_group, time_class, message_):
+    cur_group = [int(num_of_group[5])]
+    IDs = get_telega_from_data(cur_group)
     message_ = with_zoom(message_)
-    bot.send_message(developer_id, num_of_group + " " + time_of_start + " " + message_)
+    for _id in IDs:
+        bot.send_message(_id, num_of_group + " " + time_class + " " + message_)
 
 
 def with_zoom(message):
@@ -51,7 +29,7 @@ class CheckingTimetable(Table):
     def check_schedule(self):
         del_keys = []
         for key in self.time_of_class:
-            # cur_time = timedelta(hours=13, minutes=50, seconds=00)
+            # cur_time = timedelta(hours=8, minutes=50, seconds=00)
             # '''
             ct = datetime.now().time()
             cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
@@ -60,11 +38,11 @@ class CheckingTimetable(Table):
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
             if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
                 for group, start in self.time_of_class[key]:
-                    text_message_for(group, start, self.day[group][start])
+                    text_message_for(group, key, self.day[group][start])
                 del_keys.append(key)
 
         for del_key in del_keys:
-            del self.time_of_class[del_key]  # pop есть
+            self.time_of_class.pop(del_key)  # pop есть?
 
 
 telegram_token = token
@@ -85,18 +63,45 @@ def help_message(message):
 
 @bot.message_handler(commands=['authorize'])
 def start_authorize(message):
-    keyboard2 = telebot.types.ReplyKeyboardMarkup()
-    keyboard2.row("Да", "Нет")
-    sent = bot.send_message(message.chat.id, 'Вы хотите получать уведомления от бота?', reply_markup=keyboard2)
-    bot.register_next_step_handler(sent, add_2_user_list)
+    keyboard3 = telebot.types.ReplyKeyboardMarkup()
+    keyboard3.row("Я студент", "Я преподаватель", "Я/Мы МКН")
+    sent = bot.send_message(message.chat.id, 'Ваш статус?', reply_markup=keyboard3)
+    bot.register_next_step_handler(sent, check_status)
 
 
+def check_status(message):
+    if message.text == "Я студент":
+        keyboard2 = telebot.types.ReplyKeyboardMarkup()
+        keyboard2.row("Да", "Нет")
+        sent = bot.send_message(message.chat.id, 'Вы хотите получать уведомления от бота?', reply_markup=keyboard2)
+        bot.register_next_step_handler(sent, add_2_user_list)
+    elif message.text == "Я преподаватель":
+        # bot.register_next_step_handler(sent, identification)
+        bot.send_message(message.chat.id, "Не верю!")
+    else:
+        bot.send_message(message.chat.id, "Поздравляю!")
+
+
+# for students
 def add_2_user_list(message):
     if message.text == "Да":
-        bot.send_message(message.chat.id, "Пока нельзя!")
-        print(message.chat.id)
+        sent = bot.send_message(message.chat.id, "Введите ваше ФИО")
+        bot.register_next_step_handler(sent, find_student)
     else:
         bot.send_message(message.chat.id, ":(")
+
+# def del_from_user_list(message):
+
+
+def find_student(message):
+    name = message.text
+    add_telega_in_data(name, message.chat.id)
+    bot.send_message(message.chat.id, "Готово")
+
+
+# for teachers
+def identification(message):
+    return
 
 
 @bot.message_handler(commands=['announce'])
@@ -114,22 +119,23 @@ def start_message(message):
 
 
 def send_text(message):
+    global selected_group
     selected_group = []
     key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
     if message.text not in key_ans:
         bot.send_message(message.chat.id, 'вам нужно выбрать номер группы')
     elif message.text == 'все':
-        selected_group = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн']
+        selected_group = [1, 2, 3, 4, 5, 6]
     else:
-        selected_group = [message.text]
+        selected_group = [int(message.text[5])]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
-    bot.register_next_step_handler(sent, selected_group, get_information)
+    bot.register_next_step_handler(sent, get_information)
 
 
-def get_information(message, selected_group):
-    # for chat_id in [794566071, 636998614]:
-    for chat_id in [794566071]:
-        bot.send_message(chat_id, message.text)
+def get_information(message):
+    IDs = get_telega_from_data(selected_group)
+    for chat_id in IDs:
+        bot.send_message(int(chat_id), message.text)
 
 
 def _polling(bot_):
@@ -141,6 +147,7 @@ def _polling(bot_):
 
 
 if __name__ == '__main__':
+    selected_group = []
     # TODO: логгирование
     print('Start!\n')
     developer_id = 794566071
