@@ -72,9 +72,11 @@ def start_authorize(message):
 def check_status(message):
     if message.text == "Я студент":
         keyboard2 = telebot.types.ReplyKeyboardMarkup()
-        keyboard2.row("Да", "Нет")
-        sent = bot.send_message(message.chat.id, 'Вы хотите получать уведомления от бота?', reply_markup=keyboard2)
-        bot.register_next_step_handler(sent, add_2_user_list)
+        keyboard2.row("Да",
+                      "Хочу перестать",
+                      "Я в этой жизни уже ничего не хочу...")
+        sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard2)
+        bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
         # bot.register_next_step_handler(sent, identification)
         bot.send_message(message.chat.id, "Не верю!")
@@ -83,20 +85,29 @@ def check_status(message):
 
 
 # for students
-def add_2_user_list(message):
+def help_student(message):
     if message.text == "Да":
-        sent = bot.send_message(message.chat.id, "Введите ваше ФИО")
-        bot.register_next_step_handler(sent, find_student)
+        if check_uniqueness(message.chat.id):
+            sent = bot.send_message(message.chat.id, "Введите ваше ФИО")
+            bot.register_next_step_handler(sent, add_to_users)
+        else:
+            bot.send_message(message.chat.id, "Ваш id уже зарегистрирован!")
+    elif message.text == "Хочу перестать":
+        pop_from_users(message)
     else:
         bot.send_message(message.chat.id, ":(")
 
-# def del_from_user_list(message):
 
-
-def find_student(message):
+def add_to_users(message):
     name = message.text
     add_telega_in_data(name, message.chat.id)
-    bot.send_message(message.chat.id, "Готово")
+    bot.send_message(message.chat.id, "Готово!")
+
+
+def pop_from_users(message):
+    st_id = message.chat.id
+    delete_telega_in_data(st_id)
+    bot.send_message(message.chat.id, "Готово.")
 
 
 # for teachers
