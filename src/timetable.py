@@ -15,7 +15,7 @@ def infinitive_form(form):
 # correct line
 def fix_line(line):
     n = len(line)
-    key_words = ["лекция"]
+    key_words = ["лекция", "дополнительный"]
     ignore_words = ["перерыв", "английский", "физический", "консультация"]
     for i in range(n):
         cell = line[i]
@@ -58,7 +58,7 @@ def in_time_format(string):
 # find time in description of class
 def find_time_format(cell):
     pred_word = "$"
-    key_alpha = ["с", "в", "-с"]
+    key_alpha = ["с", "в", "-с", "С"]
     if cell is not None:
         spec_chars = [",", ".", ")", "("]
         cell = ''.join([ch for ch in cell if ch not in spec_chars])
