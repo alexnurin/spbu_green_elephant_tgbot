@@ -15,13 +15,8 @@ def text_message_for(num_of_group, time_class, message_):
     cur_group = [int(num_of_group[5])]
     IDs = get_telega_from_data(cur_group)
     message_ = with_zoom(message_)
-    # TODO: сделать нормальный beta_mode
     for _id in IDs:
-        if beta_mode:
-            if int(_id) in masters_id:
-                bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
-        else:
-            bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
+        bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
 
 
 def with_zoom(message):
@@ -93,12 +88,9 @@ def check_status(message):
         sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard2)
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
-        bot.send_message(message.chat.id, "Не верю!")
-        """
-        sent = bot.send_message(message.chat.id, 'Введите ваш персональный пароль.'
-                                                 '(если ещё не получили напишите @Anyfree8')
-        bot.register_next_step_handler(sent, identification)
-        """
+        sent = bot.send_message(message.chat.id, 'Введите ваш персональный пароль.' + '\n' +
+                                                 '(если ещё не получили: напишите @Anyfree8)')
+        bot.register_next_step_handler(sent, help_teacher)
     else:
         bot.send_message(message.chat.id, "Поздравляю!")
 
@@ -129,12 +121,10 @@ def pop_from_users(message):
     bot.send_message(message.chat.id, "Готово.")
 
 
-"""
 # for teachers
-def identification(message):
-    pw = message.text
-    master = add_telega_in_data_t(message.chat.id, pw)
-"""
+def help_teacher(message):
+    add_telega_in_data_t(message.chat.id, message.text)
+    bot.send_message(message.chat.id, "Готово?!")
 
 
 @bot.message_handler(commands=['announce'])
@@ -144,15 +134,16 @@ def start_message(message):
     keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
     keyboard1.row('все')
     # TODO:подключение преподавателей
-    if message.chat.id in masters_id:
+    is_teacher, teacher_name = get_teacher_name(message.chat.id)
+    if is_teacher or message.chat.id in masters_id:
         sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
                                                  'выберите, пожалуйста, группу', reply_markup=keyboard1)
-        bot.register_next_step_handler(sent, send_text)
+        bot.register_next_step_handler(sent, send_text, teacher_name)
     else:
         bot.send_message(message.chat.id, 'У вас недостаточно прав, чтобы делать объявление :(')
 
 
-def send_text(message):
+def send_text(message, advertiser_name):
     selected_group = []
     key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
     if message.text not in key_ans:
@@ -162,17 +153,19 @@ def send_text(message):
     else:
         selected_group = [int(message.text[5])]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
-    bot.register_next_step_handler(sent, get_information, selected_group)
+    bot.register_next_step_handler(sent, get_information, selected_group, advertiser_name)
 
 
-def get_information(message, selected_group):
+def get_information(message, selected_group, advertiser_name):
     IDs = []
+    # TODO: убрать объявление для девелопера
     if len(selected_group) == 6:
-        bot.send_message(developer_id, message.text)
+        bot.send_message(developer_id, advertiser_name + "\n" + message.text)
     else:
         IDs = get_telega_from_data(selected_group)
+    #
     for chat_id in IDs:
-        bot.send_message(int(chat_id), message.text)
+        bot.send_message(int(chat_id), advertiser_name + "\n" + message.text)
 
 
 def _polling(bot_):
@@ -199,6 +192,9 @@ if __name__ == '__main__':
         sheet_main = wb['Математика + МААД']
         cur_week_day = today.weekday()
         timetable = CheckingTimetable(cur_week_day, sheet_main)
+
+        # print(timetable.time_of_class)
+
         # make a dict of ZOOM id
         sheet_ZOOM = wb['ID zoom каналов']
         zm = Zoom(sheet_ZOOM)
