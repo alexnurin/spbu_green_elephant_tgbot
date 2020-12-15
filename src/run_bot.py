@@ -1,19 +1,27 @@
 from threading import Thread
 import telebot
 import openpyxl as op
+from datetime import *
 from data.secret import token
 from src.bot_logging import *
 from src.timetable import *
-from datetime import *
 from src.Func_data_s import *
+# TODO: requirements.txt
+
+# TODO: ('Connection aborted.', ConnectionResetError(10054, 'Удаленный хост принудительно разорвал существующее подключение', None, 10054, None))
 
 
 def text_message_for(num_of_group, time_class, message_):
     cur_group = [int(num_of_group[5])]
     IDs = get_telega_from_data(cur_group)
     message_ = with_zoom(message_)
+    # TODO: сделать нормальный beta_mode
     for _id in IDs:
-        bot.send_message(_id, num_of_group + " " + time_class + " " + message_)
+        if beta_mode:
+            if int(_id) in masters_id:
+                bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
+        else:
+            bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
 
 
 def with_zoom(message):
@@ -24,29 +32,36 @@ def with_zoom(message):
                 return message + " " + zm.channels[int(word)]
     return message
 
+# TODO: dangerous changes
+
 
 class CheckingTimetable(Table):
+    def check_key(self, cur_key, diff, threshold):
+        if 0 < diff < threshold:  # засунуть в функцию
+            for group, start in self.time_of_class[cur_key]:
+                text_message_for(group, cur_key, self.day[group][start])
+            self.del_keys.append(cur_key)
+
+    def clear_from_sent(self, sent_notifications):
+        for key in sent_notifications:
+            self.time_of_class.pop(key)
+
     def check_schedule(self):
-        del_keys = []
+        self.del_keys = []
         for key in self.time_of_class:
-            # cur_time = timedelta(hours=8, minutes=50, seconds=00)
+            # cur_time = timedelta(hours=11, minutes=00, seconds=10)
             # '''
             ct = datetime.now().time()
             cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
             # '''
             start_time = datetime.strptime(key, '%H:%M')
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
-            if 0 < (class_time - cur_time).total_seconds() < 900:  # засунуть в функцию
-                for group, start in self.time_of_class[key]:
-                    text_message_for(group, key, self.day[group][start])
-                del_keys.append(key)
+            self.check_key(key, (class_time - cur_time).total_seconds(), 900)
 
-        for del_key in del_keys:
-            self.time_of_class.pop(del_key)  # pop есть?
+        self.clear_from_sent(self.del_keys)
 
 
 telegram_token = token
-
 bot = telebot.TeleBot(telegram_token)
 
 
@@ -78,8 +93,12 @@ def check_status(message):
         sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard2)
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
-        # bot.register_next_step_handler(sent, identification)
         bot.send_message(message.chat.id, "Не верю!")
+        """
+        sent = bot.send_message(message.chat.id, 'Введите ваш персональный пароль.'
+                                                 '(если ещё не получили напишите @Anyfree8')
+        bot.register_next_step_handler(sent, identification)
+        """
     else:
         bot.send_message(message.chat.id, "Поздравляю!")
 
@@ -110,9 +129,12 @@ def pop_from_users(message):
     bot.send_message(message.chat.id, "Готово.")
 
 
+"""
 # for teachers
 def identification(message):
-    return
+    pw = message.text
+    master = add_telega_in_data_t(message.chat.id, pw)
+"""
 
 
 @bot.message_handler(commands=['announce'])
@@ -121,6 +143,7 @@ def start_message(message):
     keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
     keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
     keyboard1.row('все')
+    # TODO:подключение преподавателей
     if message.chat.id in masters_id:
         sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
                                                  'выберите, пожалуйста, группу', reply_markup=keyboard1)
@@ -130,21 +153,24 @@ def start_message(message):
 
 
 def send_text(message):
-    global selected_group
     selected_group = []
     key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
     if message.text not in key_ans:
-        bot.send_message(message.chat.id, 'вам нужно выбрать номер группы')
+        bot.send_message(message.chat.id, 'Вам нужно выбрать номер группы.')
     elif message.text == 'все':
         selected_group = [1, 2, 3, 4, 5, 6]
     else:
         selected_group = [int(message.text[5])]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
-    bot.register_next_step_handler(sent, get_information)
+    bot.register_next_step_handler(sent, get_information, selected_group)
 
 
-def get_information(message):
-    IDs = get_telega_from_data(selected_group)
+def get_information(message, selected_group):
+    IDs = []
+    if len(selected_group) == 6:
+        bot.send_message(developer_id, message.text)
+    else:
+        IDs = get_telega_from_data(selected_group)
     for chat_id in IDs:
         bot.send_message(int(chat_id), message.text)
 
@@ -158,9 +184,10 @@ def _polling(bot_):
 
 
 if __name__ == '__main__':
-    selected_group = []
     # TODO: логгирование
     print('Start!\n')
+    # TODO: нормальный beta_mode
+    beta_mode = False
     developer_id = 794566071
     masters_id = [794566071]
     Thread(target=_polling, args=(bot,)).start()
