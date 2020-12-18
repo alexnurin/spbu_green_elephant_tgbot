@@ -1,12 +1,13 @@
 from threading import Thread
 import telebot
 import openpyxl as op
-import systemd
 from datetime import *
 from data.secret import token
 from src.bot_logging import *
 from src.timetable import *
 from src.Func_data_s import *
+
+
 # TODO: requirements.txt
 
 # TODO: ('Connection aborted.', ConnectionResetError(10054, 'Удаленный хост принудительно разорвал существующее подключение', None, 10054, None))
@@ -27,6 +28,7 @@ def with_zoom(message):
             if word in zm.rooms:
                 return message + " " + zm.channels[int(word)]
     return message
+
 
 # TODO: dangerous changes
 
@@ -61,14 +63,20 @@ telegram_token = token
 bot = telebot.TeleBot(telegram_token)
 
 
-@bot.message_handler(commands=['help'])
-def help_message(message):
+@bot.message_handler(commands=['start'])
+def start_message(message):
     save_message(message)
     bot.send_message(message.chat.id, '''
-/help
-/announce
-/authorize
+Бот для студентов 1-ого курса Математики и МААД
 - все команды
+/announce - Сделать объявление студентам.
+/authorize - Авторизоваться.
+(зарегистрированный студент получает уведомления
+о паре в своём расписании
+за 15 минут до её непосредственного начала;
+зарегистрированный преподаватель получает 
+возможность делать объявления для зарегистрированных
+студентов)
 ''')
 
 
@@ -90,7 +98,7 @@ def check_status(message):
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
         sent = bot.send_message(message.chat.id, 'Введите ваш персональный пароль.' + '\n' +
-                                                 '(если ещё не получили: напишите @Anyfree8)')
+                                '(если ещё не получили: напишите @Anyfree8)')
         bot.register_next_step_handler(sent, help_teacher)
     else:
         bot.send_message(message.chat.id, "Поздравляю!")
@@ -100,7 +108,8 @@ def check_status(message):
 def help_student(message):
     if message.text == "Да":
         if check_uniqueness(message.chat.id):
-            sent = bot.send_message(message.chat.id, "Введите ваше ФИО")
+            sent = bot.send_message(message.chat.id, "Введите ваше настоящее ФИО\n"
+                                                     "Например:\nЗубенко Михаил Петрович")
             bot.register_next_step_handler(sent, add_to_users)
         else:
             bot.send_message(message.chat.id, "Ваш id уже зарегистрирован!")
@@ -124,8 +133,11 @@ def pop_from_users(message):
 
 # for teachers
 def help_teacher(message):
-    add_telega_in_data_t(message.chat.id, message.text)
-    bot.send_message(message.chat.id, "Готово?!")
+    done_add = add_telega_in_data_t(message.chat.id, message.text)
+    if done_add:
+        bot.send_message(message.chat.id, "Готово!")
+    else:
+        bot.send_message(message.chat.id, "Простите, такой пароль отсутствует в базе!")
 
 
 @bot.message_handler(commands=['announce'])
@@ -134,7 +146,7 @@ def start_message(message):
     keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
     keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
     keyboard1.row('все')
-    # TODO:подключение преподавателей
+    # TODO:подключение только преподавателей
     is_teacher, teacher_name = get_teacher_name(message.chat.id)
     if is_teacher or message.chat.id in masters_id:
         sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
@@ -160,6 +172,7 @@ def send_text(message, advertiser_name):
 def get_information(message, selected_group, advertiser_name):
     IDs = []
     # TODO: убрать объявление для девелопера
+    # тут написано, что если выбрать "все", то обьявление придёт на developer_id
     if len(selected_group) == 6:
         bot.send_message(developer_id, advertiser_name + "\n" + message.text)
     else:
