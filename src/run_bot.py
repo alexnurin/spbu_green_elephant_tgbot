@@ -2,7 +2,7 @@ from threading import Thread
 import telebot
 import openpyxl as op
 from datetime import *
-from data.secret import token
+from data.secret import token, reserve_token
 from src.bot_logging import *
 from src.timetable import *
 from src.Func_data_s import *
@@ -10,15 +10,14 @@ from src.Func_data_s import *
 
 # TODO: requirements.txt
 
-# TODO: ('Connection aborted.', ConnectionResetError(10054, 'Удаленный хост принудительно разорвал существующее подключение', None, 10054, None))
 
-
-def text_message_for(num_of_group, time_class, message_):
+def text_message_for(num_of_group, time_class, message):
     cur_group = [int(num_of_group[5])]
+    # students
     IDs = get_telega_from_data(cur_group)
-    message_ = with_zoom(message_)
+    message = with_zoom(message)
     for _id in IDs:
-        bot.send_message(_id, num_of_group + "\n" + time_class + "\n" + message_)
+        bot.send_message(_id, '\n'.join([num_of_group, time_class, message]))
 
 
 def with_zoom(message):
@@ -60,14 +59,25 @@ class CheckingTimetable(Table):
 
 
 telegram_token = token
+# telegram_token = reserve_token
 bot = telebot.TeleBot(telegram_token)
 
 
 @bot.message_handler(commands=['start'])
-def start_message(message):
+def welcome(message):
+    save_message(message)
+    bot.send_message(message.chat.id, '''Доброе время суток! 
+Это бот для студентов 1-ого курса Математики и МААД.
+Чтобы уведеть список команд,
+нажмите
+/help
+''')
+
+
+@bot.message_handler(commands=['help'])
+def help_message(message):
     save_message(message)
     bot.send_message(message.chat.id, '''
-Бот для студентов 1-ого курса Математики и МААД
 - все команды
 /announce - Сделать объявление студентам.
 /authorize - Авторизоваться.
@@ -97,8 +107,8 @@ def check_status(message):
         sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard2)
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
-        sent = bot.send_message(message.chat.id, 'Введите ваш персональный пароль.' + '\n' +
-                                '(если ещё не получили: напишите @Anyfree8)')
+        sent = bot.send_message(message.chat.id, '''Введите ваш персональный пароль.\n
+                                (если ещё не получили: напишите @Anyfree8)''')
         bot.register_next_step_handler(sent, help_teacher)
     else:
         bot.send_message(message.chat.id, "Поздравляю!")
@@ -174,12 +184,20 @@ def get_information(message, selected_group, advertiser_name):
     # TODO: убрать объявление для девелопера
     # тут написано, что если выбрать "все", то обьявление придёт на developer_id
     if len(selected_group) == 6:
-        bot.send_message(developer_id, advertiser_name + "\n" + message.text)
+        bot.send_message(developer_id, '\n'.join([advertiser_name, message.text]))
     else:
         IDs = get_telega_from_data(selected_group)
     #
     for chat_id in IDs:
-        bot.send_message(int(chat_id), advertiser_name + "\n" + message.text)
+        bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
+
+
+@bot.message_handler(content_types=['text', 'sticker'])
+def redirect_user(message):
+    save_message(message)
+    bot.send_message(message.chat.id, ''' Нажмите /help,
+чтобы уведеть список команд.
+''')
 
 
 def _polling(bot_):
