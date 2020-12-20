@@ -1,0 +1,6 @@
+sqlite3
+pandas
+pymorphy2
+telebot
+openpyxl
+datetime
