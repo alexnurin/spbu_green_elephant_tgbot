@@ -17,7 +17,10 @@ def text_message_for(num_of_group, time_class, message):
     IDs = get_telega_from_data(cur_group)
     message = with_zoom(message)
     for _id in IDs:
-        bot.send_message(_id, '\n'.join([num_of_group, time_class, message]))
+        try:
+            bot.send_message(_id, '\n'.join([num_of_group, time_class, message]))
+        except Exception as exception:
+            print(exception)
 
 
 def with_zoom(message):
@@ -184,12 +187,18 @@ def get_information(message, selected_group, advertiser_name):
     # TODO: убрать объявление для девелопера
     # тут написано, что если выбрать "все", то обьявление придёт на developer_id
     if len(selected_group) == 6:
-        bot.send_message(developer_id, '\n'.join([advertiser_name, message.text]))
+        try:
+            bot.send_message(developer_id, '\n'.join([advertiser_name, message.text]))
+        except Exception as exception:
+            print(exception)
     else:
         IDs = get_telega_from_data(selected_group)
     #
     for chat_id in IDs:
-        bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
+        try:
+            bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
+        except Exception as exception:
+            print(exception)
 
 
 @bot.message_handler(content_types=['text', 'sticker'])
@@ -200,6 +209,7 @@ def redirect_user(message):
 ''')
 
 
+# try отправить
 def _polling(bot_):
     while 1:
         try:
@@ -214,7 +224,7 @@ if __name__ == '__main__':
     # TODO: нормальный beta_mode
     beta_mode = False
     developer_id = 794566071
-    masters_id = [794566071]
+    masters_id = [794566071, 636998614]
     Thread(target=_polling, args=(bot,)).start()
     while True:
         today = datetime.now()
