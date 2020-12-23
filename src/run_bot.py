@@ -2,44 +2,41 @@ from threading import Thread
 import telebot
 import openpyxl as op
 from datetime import *
-from data.secret import token, reserve_token
+from data.secret import token
 from src.bot_logging import *
 from src.timetable import *
 from src.Func_data_s import *
 
 
-# TODO: requirements.txt
-
-
-def text_message_for(num_of_group, time_class, message):
-    cur_group = [int(num_of_group[5])]
-    # students
-    IDs = get_telega_from_data(cur_group)
-    message = with_zoom(message)
-    for _id in IDs:
+def send_notifications(group, time_class, message):
+    num_of_group = [int(group[5])]
+    students_id_list = get_telega_from_data(num_of_group)
+    message = make_message_with_zoom_id(message)
+    for chat_id in students_id_list:
         try:
-            bot.send_message(_id, '\n'.join([num_of_group, time_class, message]))
+            # TODO: !!
+            if chat_id == str(developer_id):
+                bot.send_message(chat_id, '\n'.join([group, "Начало: " + time_class, message]))
         except Exception as exception:
             print(exception)
 
 
-def with_zoom(message):
+def make_message_with_zoom_id(message: str) -> str:
+    spec_chars = ["-"]
     if message is not None:
         words_in_message = message.split()
         for word in words_in_message:
             if word in zm.rooms:
-                return message + " " + zm.channels[int(word)]
+                zoom_link = "https://zoom.us/j/" + "".join([ch for ch in zm.channels[word] if ch not in spec_chars])
+                return '\n'.join([message, "Идентификатор конференции: " + zm.channels[word], "Ссылка: " + zoom_link])
     return message
-
-
-# TODO: dangerous changes
 
 
 class CheckingTimetable(Table):
     def check_key(self, cur_key, diff, threshold):
-        if 0 < diff < threshold:  # засунуть в функцию
+        if 0 < diff < threshold:
             for group, start in self.time_of_class[cur_key]:
-                text_message_for(group, cur_key, self.day[group][start])
+                send_notifications(group, cur_key, self.day[group][start])
             self.del_keys.append(cur_key)
 
     def clear_from_sent(self, sent_notifications):
@@ -49,11 +46,11 @@ class CheckingTimetable(Table):
     def check_schedule(self):
         self.del_keys = []
         for key in self.time_of_class:
-            # cur_time = timedelta(hours=11, minutes=00, seconds=10)
-            # '''
+            cur_time = timedelta(hours=11, minutes=00, seconds=10)
+            '''
             ct = datetime.now().time()
             cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
-            # '''
+            '''
             start_time = datetime.strptime(key, '%H:%M')
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
             self.check_key(key, (class_time - cur_time).total_seconds(), 900)
@@ -62,7 +59,6 @@ class CheckingTimetable(Table):
 
 
 telegram_token = token
-# telegram_token = reserve_token
 bot = telebot.TeleBot(telegram_token)
 
 
@@ -95,19 +91,19 @@ def help_message(message):
 
 @bot.message_handler(commands=['authorize'])
 def start_authorize(message):
-    keyboard3 = telebot.types.ReplyKeyboardMarkup()
-    keyboard3.row("Я студент", "Я преподаватель", "Я/Мы МКН")
-    sent = bot.send_message(message.chat.id, 'Ваш статус?', reply_markup=keyboard3)
+    keyboard = telebot.types.ReplyKeyboardMarkup()
+    keyboard.row("Я студент", "Я преподаватель", "Я/Мы МКН")
+    sent = bot.send_message(message.chat.id, 'Ваш статус?', reply_markup=keyboard)
     bot.register_next_step_handler(sent, check_status)
 
 
 def check_status(message):
     if message.text == "Я студент":
-        keyboard2 = telebot.types.ReplyKeyboardMarkup()
-        keyboard2.row("Да",
-                      "Хочу перестать",
-                      "Я в этой жизни уже ничего не хочу...")
-        sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard2)
+        keyboard = telebot.types.ReplyKeyboardMarkup()
+        keyboard.row("Да",
+                     "Хочу перестать",
+                     "Я в этой жизни уже ничего не хочу...")
+        sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard)
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
         sent = bot.send_message(message.chat.id, '''Введите ваш персональный пароль.\n
@@ -139,8 +135,8 @@ def add_to_users(message):
 
 
 def pop_from_users(message):
-    st_id = message.chat.id
-    delete_telega_in_data(st_id)
+    student_id = message.chat.id
+    delete_telega_in_data(student_id)
     bot.send_message(message.chat.id, "Готово.")
 
 
@@ -155,50 +151,59 @@ def help_teacher(message):
 
 @bot.message_handler(commands=['announce'])
 def start_message(message):
-    keyboard1 = telebot.types.ReplyKeyboardMarkup()
-    keyboard1.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
-    keyboard1.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
-    keyboard1.row('все')
+    keyboard = telebot.types.ReplyKeyboardMarkup()
+    keyboard.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
+    keyboard.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
+    keyboard.row('все')
     # TODO:подключение только преподавателей
     is_teacher, teacher_name = get_teacher_name(message.chat.id)
     if is_teacher or message.chat.id in masters_id:
         sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
-                                                 'выберите, пожалуйста, группу', reply_markup=keyboard1)
+                                                 'выберите, пожалуйста, группу', reply_markup=keyboard)
         bot.register_next_step_handler(sent, send_text, teacher_name)
     else:
         bot.send_message(message.chat.id, 'У вас недостаточно прав, чтобы делать объявление :(')
 
 
 def send_text(message, advertiser_name):
-    selected_group = []
+    selected_groups = []
     key_ans = ['20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн', '20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн', 'все']
     if message.text not in key_ans:
         bot.send_message(message.chat.id, 'Вам нужно выбрать номер группы.')
     elif message.text == 'все':
-        selected_group = [1, 2, 3, 4, 5, 6]
+        selected_groups = [1, 2, 3, 4, 5, 6]
     else:
-        selected_group = [int(message.text[5])]
+        selected_groups = [int(message.text[5])]
     sent = bot.send_message(message.chat.id, 'Напишите сообщения для групп')
-    bot.register_next_step_handler(sent, get_information, selected_group, advertiser_name)
+    bot.register_next_step_handler(sent, get_information, selected_groups, advertiser_name)
 
 
-def get_information(message, selected_group, advertiser_name):
-    IDs = []
+def get_information(message, selected_groups, advertiser_name):
+    students_id_list = []
     # TODO: убрать объявление для девелопера
     # тут написано, что если выбрать "все", то обьявление придёт на developer_id
-    if len(selected_group) == 6:
+    if len(selected_groups) == 6:
         try:
             bot.send_message(developer_id, '\n'.join([advertiser_name, message.text]))
         except Exception as exception:
             print(exception)
     else:
-        IDs = get_telega_from_data(selected_group)
+        students_id_list = get_telega_from_data(selected_groups)
     #
-    for chat_id in IDs:
+    for chat_id in students_id_list:
         try:
             bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
         except Exception as exception:
             print(exception)
+
+
+'''
+@bot.message_handler(commands=['get_useful_links'])
+def send_links(message):
+    f = open('mkn_links.txt')
+    links = f.read()
+    bot.send_message(message.chat.id, links)
+'''
 
 
 @bot.message_handler(content_types=['text', 'sticker'])
@@ -209,7 +214,6 @@ def redirect_user(message):
 ''')
 
 
-# try отправить
 def _polling(bot_):
     while 1:
         try:
@@ -221,32 +225,20 @@ def _polling(bot_):
 if __name__ == '__main__':
     # TODO: логгирование
     print('Start!\n')
-    # TODO: нормальный beta_mode
-    beta_mode = False
     developer_id = 794566071
     masters_id = [794566071, 636998614]
+    # communication with the user
     Thread(target=_polling, args=(bot,)).start()
     while True:
         today = datetime.now()
+        cur_week_day = today.weekday()
         bot.send_message(developer_id, today)
         # open timetable (Расписание осень 2020_2021.xlsx)
-        wb = op.load_workbook("Расписание осень 2020_2021.xlsx")
-        sheet_main = wb['Математика + МААД']
-        cur_week_day = today.weekday()
+        workbook = op.load_workbook("Расписание осень 2020_2021.xlsx")
+        sheet_main = workbook['Математика + МААД']
         timetable = CheckingTimetable(cur_week_day, sheet_main)
-
-        # print(timetable.time_of_class)
-
-        # make a dict of ZOOM id
-        sheet_ZOOM = wb['ID zoom каналов']
+        # make a dict of ZOOM identifiers
+        sheet_ZOOM = workbook['ID zoom каналов']
         zm = Zoom(sheet_ZOOM)
         while today.day == datetime.now().day:
             timetable.check_schedule()
-
-"""
-
-@bot.message_handler(lambda message: True)
-def another_message(message):
-    help_message(message)
-
-"""
