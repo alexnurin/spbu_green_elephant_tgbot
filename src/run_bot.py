@@ -9,14 +9,19 @@ from src.Func_data_s import *
 
 
 def send_notifications(group, time_class, message):
+    """
+    The function sends notifications to registered students of the given group.
+    :param str group: number of group in format - '20.Б0*-мкн'
+    :param str time_class: time of class in format - '**:**'
+    :param str message: message for sending
+    """
     num_of_group = [int(group[5])]
     students_id_list = get_telega_from_data(num_of_group)
+    # process message
     message = make_message_with_zoom_id(message)
     for chat_id in students_id_list:
         try:
-            # TODO: !!
-            if chat_id == str(developer_id):
-                bot.send_message(chat_id, '\n'.join([group, "Начало: " + time_class, message]))
+            bot.send_message(chat_id, '\n'.join([group, "Начало: " + time_class, message]))
         except Exception as exception:
             print(exception)
 
@@ -32,29 +37,29 @@ def make_message_with_zoom_id(message: str) -> str:
     return message
 
 
+# class for checking "Расписание осень 2020_2021.xlsx" and sending notifications
 class CheckingTimetable(Table):
+    # check different with time of class and current time and send notifications to students
     def check_key(self, cur_key, diff, threshold):
         if 0 < diff < threshold:
             for group, start in self.time_of_class[cur_key]:
                 send_notifications(group, cur_key, self.day[group][start])
             self.del_keys.append(cur_key)
 
+    # delete sent notifications from dictionary with time of class
     def clear_from_sent(self, sent_notifications):
         for key in sent_notifications:
             self.time_of_class.pop(key)
 
+    # compare current time with time in time_of_class
     def check_schedule(self):
         self.del_keys = []
         for key in self.time_of_class:
-            cur_time = timedelta(hours=11, minutes=00, seconds=10)
-            '''
             ct = datetime.now().time()
             cur_time = timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
-            '''
             start_time = datetime.strptime(key, '%H:%M')
             class_time = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=0)
             self.check_key(key, (class_time - cur_time).total_seconds(), 900)
-
         self.clear_from_sent(self.del_keys)
 
 
@@ -62,6 +67,7 @@ telegram_token = token
 bot = telebot.TeleBot(telegram_token)
 
 
+# Handle '/start'
 @bot.message_handler(commands=['start'])
 def welcome(message):
     save_message(message)
@@ -73,6 +79,7 @@ def welcome(message):
 ''')
 
 
+# Handle '/help'
 @bot.message_handler(commands=['help'])
 def help_message(message):
     save_message(message)
@@ -113,7 +120,7 @@ def check_status(message):
         bot.send_message(message.chat.id, "Поздравляю!")
 
 
-# for students
+# interactive with students
 def help_student(message):
     if message.text == "Да":
         if check_uniqueness(message.chat.id):
@@ -140,7 +147,7 @@ def pop_from_users(message):
     bot.send_message(message.chat.id, "Готово.")
 
 
-# for teachers
+# interactive with teachers
 def help_teacher(message):
     done_add = add_telega_in_data_t(message.chat.id, message.text)
     if done_add:
@@ -155,7 +162,6 @@ def start_message(message):
     keyboard.row('20.Б01-мкн', '20.Б02-мкн', '20.Б03-мкн')
     keyboard.row('20.Б04-мкн', '20.Б05-мкн', '20.Б06-мкн')
     keyboard.row('все')
-    # TODO:подключение только преподавателей
     is_teacher, teacher_name = get_teacher_name(message.chat.id)
     if is_teacher or message.chat.id in masters_id:
         sent = bot.send_message(message.chat.id, 'Здравствуйте, если вы хотите сделать объявление, то '
@@ -179,17 +185,7 @@ def send_text(message, advertiser_name):
 
 
 def get_information(message, selected_groups, advertiser_name):
-    students_id_list = []
-    # TODO: убрать объявление для девелопера
-    # тут написано, что если выбрать "все", то обьявление придёт на developer_id
-    if len(selected_groups) == 6:
-        try:
-            bot.send_message(developer_id, '\n'.join([advertiser_name, message.text]))
-        except Exception as exception:
-            print(exception)
-    else:
-        students_id_list = get_telega_from_data(selected_groups)
-    #
+    students_id_list = get_telega_from_data(selected_groups)
     for chat_id in students_id_list:
         try:
             bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
@@ -206,7 +202,8 @@ def send_links(message):
 '''
 
 
-@bot.message_handler(content_types=['text', 'sticker'])
+# Handle all other messages with content_type 'text' (content_types defaults to ['text'])
+@bot.message_handler(func=lambda message: True)
 def redirect_user(message):
     save_message(message)
     bot.send_message(message.chat.id, ''' Нажмите /help,
