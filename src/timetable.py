@@ -13,7 +13,7 @@ def infinitive_form(form):
 
 
 # correct line
-def fix_line(line):
+def fix_line(line: list) -> list:
     n = len(line)
     key_words = ["лекция", "дополнительный"]
     ignore_words = ["перерыв", "английский", "физический", "консультация"]
@@ -73,7 +73,6 @@ def find_time_format(cell):
 
 class Table:
     def __init__(self, week_day, sheet):
-        # week_day = 0
         # set a week mods
         week = {0: (0, 1, 6),
                 1: (0, 6, 11),
@@ -96,7 +95,6 @@ class Table:
         self.day.columns.name = "Группы"
         # dict time
         self.time_of_class = {}
-        # TODO:распарсить begin
         for group in self.groups:
             for start in self.time:
                 info = self.day[group][start]
@@ -109,7 +107,7 @@ class Table:
                     self.time_of_class[begin] = [[group, start]]
                 else:
                     self.time_of_class[begin].append([group, start])
-        # TODO: dangerous changes
+        # list keys in time of class to be deleted
         self.del_keys = []
 
 
@@ -118,7 +116,7 @@ class Zoom:
         self.channels = {}
         self.rooms = []
         for j in range(2, 12 + 1):
-            room = sheet.cell(row=j, column=1).value
-            self.rooms.append(str(int(room)))
+            room = str(int(sheet.cell(row=j, column=1).value))
+            self.rooms.append(room)
             id_ = sheet.cell(row=j, column=2).value
             self.channels[room] = id_

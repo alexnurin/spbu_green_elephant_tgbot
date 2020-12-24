@@ -1,6 +1,6 @@
-sqlite3
-pandas
-pymorphy2
-telebot
-openpyxl
-datetime
+import Thread
+import telebot
+import openpyxl
+import pandas
+import pymorphy2
+import sqlite3

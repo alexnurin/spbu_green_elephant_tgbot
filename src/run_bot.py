@@ -3,7 +3,6 @@ import telebot
 import openpyxl as op
 from datetime import *
 from data.secret import token
-from src.bot_logging import *
 from src.timetable import *
 from src.Func_data_s import *
 
@@ -70,7 +69,7 @@ bot = telebot.TeleBot(telegram_token)
 # Handle '/start'
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    save_message(message)
+    # save_message(message)
     bot.send_message(message.chat.id, '''Доброе время суток! 
 Это бот для студентов 1-ого курса Математики и МААД.
 Чтобы уведеть список команд,
@@ -82,7 +81,7 @@ def welcome(message):
 # Handle '/help'
 @bot.message_handler(commands=['help'])
 def help_message(message):
-    save_message(message)
+    # save_message(message)
     bot.send_message(message.chat.id, '''
 - все команды
 /announce - Сделать объявление студентам.
@@ -93,6 +92,7 @@ def help_message(message):
 зарегистрированный преподаватель получает 
 возможность делать объявления для зарегистрированных
 студентов)
+/get_useful_links
 ''')
 
 
@@ -193,19 +193,17 @@ def get_information(message, selected_groups, advertiser_name):
             print(exception)
 
 
-'''
 @bot.message_handler(commands=['get_useful_links'])
 def send_links(message):
-    f = open('mkn_links.txt')
+    f = open('mkn_links.txt', 'r', encoding='utf-8')
     links = f.read()
     bot.send_message(message.chat.id, links)
-'''
 
 
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
 @bot.message_handler(func=lambda message: True)
 def redirect_user(message):
-    save_message(message)
+    # save_message(message)
     bot.send_message(message.chat.id, ''' Нажмите /help,
 чтобы уведеть список команд.
 ''')

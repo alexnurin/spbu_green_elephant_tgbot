@@ -58,7 +58,7 @@ def check_uniqueness(student_id):
 
 # 5.1)
 def add_telega_in_data_t(_id, password):
-    with sq.connect("teachers (1).db") as con:
+    with sq.connect("teachers (2).db") as con:
         cur = con.cursor()
         cur.execute(f"""SELECT name FROM teachers_mkn_1 WHERE password_t= '{password}' """)
         results = cur.fetchall()
@@ -70,12 +70,12 @@ def add_telega_in_data_t(_id, password):
             return False
 
 
-# add_telega_in_data_t('gaWkin-6hejpi-sotbyb', 794566071)
+# add_telega_in_data_t(91717534, "fghj6L-qaer5M-83dSzc")
 
 
 # 5.1)
 def delete_telega_in_data_t(teacher_id):
-    with sq.connect("teachers (1).db") as con:
+    with sq.connect("teachers (2).db") as con:
         cur = con.cursor()
         cur.execute(f"""UPDATE teachers_mkn_1 SET teachers_authentication = '{0}' 
                     WHERE teachers_authentication= '{teacher_id}' """)
@@ -86,7 +86,7 @@ def delete_telega_in_data_t(teacher_id):
 
 # 6
 def get_teacher_name(teacher_id):
-    with sq.connect("teachers (1).db") as con:
+    with sq.connect("teachers (2).db") as con:
         cur = con.cursor()
         cur.execute(f"""SELECT name FROM teachers_mkn_1 WHERE teachers_authentication='{teacher_id}' """)
         results = cur.fetchall()
@@ -98,4 +98,11 @@ def get_teacher_name(teacher_id):
 # add_telega_in_data("Копейкина Софья Евгеньевна", 669531883)
 
 
+def new_password(name_, password):
+    with sq.connect("teachers (2).db") as con:
+        cur = con.cursor()
+        cur.execute(f"""UPDATE teachers_mkn_1 SET password_t = '{password}' 
+                           WHERE name = '{name_}' """)
+#fghj6L-qaer5M-83dSzc
 
+# new_password('Максимов', "fghj6L-qaer5M-83dSzc")
