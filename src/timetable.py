@@ -3,7 +3,7 @@ import pymorphy2
 
 
 # infinitive form for keywords
-def infinitive_form(form):
+def make_infinitive_form(form: str) -> str:
     morph = pymorphy2.MorphAnalyzer()
     spec_chars = [",", "."]
     form = ''.join([ch for ch in form if ch not in spec_chars])
@@ -22,7 +22,7 @@ def fix_line(line: list) -> list:
         if cell is not None:
             words_in_cell = cell.split()
             for word in words_in_cell:
-                word = infinitive_form(word)
+                word = make_infinitive_form(word)
                 if word in ignore_words:
                     for ind_cell in range(0, n):
                         line[ind_cell] = None
@@ -36,7 +36,7 @@ def fix_line(line: list) -> list:
 
 
 # correct data
-def fix_data(raw_data):
+def fix_data(raw_data: list) -> list:
     for j in range(len(raw_data)):
         raw_data[j] = fix_line(raw_data[j])
     return raw_data
