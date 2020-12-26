@@ -15,7 +15,7 @@ def send_notifications(group, time_class, message):
     :param str message: message for sending
     """
     num_of_group = [int(group[5])]
-    students_id_list = get_telega_from_data(num_of_group)
+    students_id_list = get_students_id_list(num_of_group)
     # process message
     message = make_message_with_zoom_id(message)
     for chat_id in students_id_list:
@@ -92,7 +92,7 @@ def help_message(message):
 зарегистрированный преподаватель получает 
 возможность делать объявления для зарегистрированных
 студентов)
-/get_useful_links
+/get_links
 ''')
 
 
@@ -113,8 +113,8 @@ def check_status(message):
         sent = bot.send_message(message.chat.id, 'Хотите получать уведомления?', reply_markup=keyboard)
         bot.register_next_step_handler(sent, help_student)
     elif message.text == "Я преподаватель":
-        sent = bot.send_message(message.chat.id, '''Введите ваш персональный пароль.\n
-                                (если ещё не получили: напишите @Anyfree8)''')
+        sent = bot.send_message(message.chat.id, '''Введите ваш персональный пароль.
+        (если ещё не получили: напишите @Anyfree8)''')
         bot.register_next_step_handler(sent, help_teacher)
     else:
         bot.send_message(message.chat.id, "Поздравляю!")
@@ -123,7 +123,7 @@ def check_status(message):
 # interactive with students
 def help_student(message):
     if message.text == "Да":
-        if check_uniqueness(message.chat.id):
+        if check_student_uniqueness(message.chat.id):
             sent = bot.send_message(message.chat.id, "Введите ваше настоящее ФИО\n"
                                                      "Например:\nЗубенко Михаил Петрович")
             bot.register_next_step_handler(sent, add_to_users)
@@ -137,19 +137,19 @@ def help_student(message):
 
 def add_to_users(message):
     name = message.text
-    add_telega_in_data(name, message.chat.id)
+    register_student(name, message.chat.id)
     bot.send_message(message.chat.id, "Готово!")
 
 
 def pop_from_users(message):
     student_id = message.chat.id
-    delete_telega_in_data(student_id)
+    unregister_student(student_id)
     bot.send_message(message.chat.id, "Готово.")
 
 
 # interactive with teachers
 def help_teacher(message):
-    done_add = add_telega_in_data_t(message.chat.id, message.text)
+    done_add = register_teacher(message.chat.id, message.text)
     if done_add:
         bot.send_message(message.chat.id, "Готово!")
     else:
@@ -185,7 +185,7 @@ def send_text(message, advertiser_name):
 
 
 def get_information(message, selected_groups, advertiser_name):
-    students_id_list = get_telega_from_data(selected_groups)
+    students_id_list = get_students_id_list(selected_groups)
     for chat_id in students_id_list:
         try:
             bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
@@ -193,7 +193,7 @@ def get_information(message, selected_groups, advertiser_name):
             print(exception)
 
 
-@bot.message_handler(commands=['get_useful_links'])
+@bot.message_handler(commands=['get_links'])
 def send_links(message):
     f = open('mkn_links.txt', 'r', encoding='utf-8')
     links = f.read()

@@ -85,12 +85,16 @@ class Table:
         self.groups = [sheet.cell(row=1, column=i).value for i in range(3, 9)]
         parity, low_line, high_line = week[week_day]
         # make short DataFrame for day from xlsx
-        self.data = [[sheet.cell(row=2 * j + parity, column=i).value for i in range(3, 9)] for j in
-                     range(low_line, high_line)]
+        self.data = [[sheet.cell(row=2 * j + parity, column=i).value
+                      for i in range(3, 9)]
+                     for j in range(low_line, high_line)]
         self.data = fix_data(self.data)
-        self.time = [sheet.cell(row=2 * j + parity, column=2).value for j in range(low_line, high_line)]
+        self.time = [sheet.cell(row=2 * j + parity, column=2).
+                     value for j in range(low_line, high_line)]
         # make timetable for day
-        self.day = pd.DataFrame(self.data, index=self.time, columns=self.groups)
+        self.day = pd.DataFrame(self.data,
+                                index=self.time,
+                                columns=self.groups)
         self.day.index.name = 'Время'
         self.day.columns.name = "Группы"
         # dict time
