@@ -38,7 +38,7 @@ def unregister_student(student_id: int):
 
 
 # Checking the uniqueness of the id of the student who wants to register
-def check_student_uniqueness_(student_id: int) -> bool:
+def check_student_uniqueness(student_id: int) -> bool:
     results_empty = True
     conn = engine_students.connect()
     s = students.select().where(students.c.telega_id == str(student_id))
