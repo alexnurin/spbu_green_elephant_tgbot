@@ -114,3 +114,4 @@ def get_teacher_name(teacher_id: int):
     else:
         f_data_logger.info('Имя не найдено, id: ' + str(teacher_id))
         return False, "developer"
+
