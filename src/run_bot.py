@@ -5,6 +5,7 @@ from datetime import *
 from data.secret import token
 from src.timetable import *
 from src.Func_data_s import *
+from src.bot_logging import *
 
 
 def send_notifications(group, time_class, message):
@@ -21,8 +22,11 @@ def send_notifications(group, time_class, message):
     for chat_id in students_id_list:
         try:
             bot.send_message(chat_id, '\n'.join([group, "Начало: " + time_class, message]))
+            f_message_logger.debug(" ".join(['Сообщение с расписанием отправлено студенту c id',
+                                            str(chat_id), 'из группы', group]))
         except Exception as exception:
-            print(exception)
+            f_message_logger.critical('Сообщение о расписанием не было отправлено из-за ошибки ')
+            f_message_logger.critical(exception)
 
 
 def make_message_with_zoom_id(message: str) -> str:
@@ -32,12 +36,14 @@ def make_message_with_zoom_id(message: str) -> str:
         for word in words_in_message:
             if word in zm.rooms:
                 zoom_link = "https://zoom.us/j/" + "".join([ch for ch in zm.channels[word] if ch not in spec_chars])
+                f_message_logger.info('Занятие: ' + message + " будет в zoom конференции.")
                 return '\n'.join([message, "Идентификатор конференции: " + zm.channels[word], "Ссылка: " + zoom_link])
+    f_message_logger.info('Занятие: ' + message + " будет НЕ в zoom конференции.")
     return message
 
 
 # class for checking "Расписание осень 2020_2021.xlsx" and sending notifications
-class CheckingTimetable(Table):
+class CheckingTimetable(TimeTable):
     # check different with time of class and current time and send notifications to students
     def check_key(self, cur_key, diff, threshold):
         if 0 < diff < threshold:
@@ -69,7 +75,6 @@ bot = telebot.TeleBot(telegram_token)
 # Handle '/start'
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    # save_message(message)
     bot.send_message(message.chat.id, '''Доброе время суток! 
 Это бот для студентов 1-ого курса Математики и МААД.
 Чтобы уведеть список команд,
@@ -81,7 +86,6 @@ def welcome(message):
 # Handle '/help'
 @bot.message_handler(commands=['help'])
 def help_message(message):
-    # save_message(message)
     bot.send_message(message.chat.id, '''
 - все команды
 /announce - Сделать объявление студентам.
@@ -190,7 +194,7 @@ def get_information(message, selected_groups, advertiser_name):
         try:
             bot.send_message(int(chat_id), '\n'.join([advertiser_name, message.text]))
         except Exception as exception:
-            print(exception)
+            f_message_logger.critical(exception)
 
 
 @bot.message_handler(commands=['get_links'])
@@ -203,7 +207,6 @@ def send_links(message):
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
 @bot.message_handler(func=lambda message: True)
 def redirect_user(message):
-    # save_message(message)
     bot.send_message(message.chat.id, ''' Нажмите /help,
 чтобы уведеть список команд.
 ''')
@@ -218,8 +221,7 @@ def _polling(bot_):
 
 
 if __name__ == '__main__':
-    # TODO: логгирование
-    print('Start!\n')
+    f_message_logger.info('Start!')
     developer_id = 794566071
     masters_id = [794566071, 636998614]
     # communication with the user
@@ -227,7 +229,7 @@ if __name__ == '__main__':
     while True:
         today = datetime.now()
         cur_week_day = today.weekday()
-        bot.send_message(developer_id, today)
+        f_message_logger.info(today)
         # open timetable (Расписание осень 2020_2021.xlsx)
         workbook = op.load_workbook("Расписание осень 2020_2021.xlsx")
         sheet_main = workbook['Математика + МААД']
