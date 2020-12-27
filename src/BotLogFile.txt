@@ -1,0 +1,13 @@
+INFO:Отправка сообщений:Start!
+INFO:Отправка сообщений:2020-12-27 21:55:41.597694
+INFO:Отправка сообщений:Start!
+INFO:Отправка сообщений:2020-12-27 21:55:47.833747
+INFO:sqlalchemy.engine.base.Engine:SELECT CAST('test plain returns' AS VARCHAR(60)) AS anon_1
+INFO:sqlalchemy.engine.base.Engine:()
+INFO:sqlalchemy.engine.base.Engine:SELECT CAST('test unicode returns' AS VARCHAR(60)) AS anon_1
+INFO:sqlalchemy.engine.base.Engine:()
+INFO:sqlalchemy.engine.base.Engine:SELECT teachers_mkn_1.teachers_authentication, teachers_mkn_1.name, teachers_mkn_1.teaching_group, teachers_mkn_1.subject, teachers_mkn_1.password_t 
+FROM teachers_mkn_1 
+WHERE teachers_mkn_1.password_t = ?
+INFO:sqlalchemy.engine.base.Engine:('ghd',)
+INFO:База данных:Пароль ghd не найден

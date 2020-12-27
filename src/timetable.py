@@ -14,6 +14,12 @@ def make_infinitive_form(form: str) -> str:
 
 # correct line
 def fix_line(line: list) -> list:
+    """
+    Function completes row to the end with current cell if a keyword is found.
+    If ignore word is found it fulls all row with None.
+    :param line: line from xlsx table
+    :return line : fixed line
+    """
     n = len(line)
     key_words = ["лекция", "дополнительный"]
     ignore_words = ["перерыв", "английский", "физический", "консультация"]
@@ -23,36 +29,37 @@ def fix_line(line: list) -> list:
             words_in_cell = cell.split()
             for word in words_in_cell:
                 word = make_infinitive_form(word)
-                if word in ignore_words:
-                    for ind_cell in range(0, n):
-                        line[ind_cell] = None
-                    break
-                # это много циклов - надо пофиксить (наверное)
                 if word in key_words:
+                    # full line as cell
                     for ind_cell in range(i + 1, n):
                         line[ind_cell] = cell
-                    break
+                    return line
+                if word in ignore_words:
+                    # make line empty
+                    for ind_cell in range(0, n):
+                        line[ind_cell] = None
+                    return line
     return line
 
 
-# correct data
+# correct data with fix_line
 def fix_data(raw_data: list) -> list:
     for j in range(len(raw_data)):
         raw_data[j] = fix_line(raw_data[j])
     return raw_data
 
 
-# check time format
-def in_time_format(string):
-    indices = [0, 1, 3, 4]
-    if len(string) == 5:
-        flag = True
-        for i in indices:
-            if not string[i].isdigit:
-                flag = False
-        if flag and (string[2] == "-" or string[2] == ":"):
-            return True
-    return False
+# check for time format
+def is_in_time_format(applicant: str) -> bool:
+    spec_chars = [":", "-"]
+    length = len(applicant)
+    if length == 5 and applicant[2] in spec_chars:
+        for i in range(length):
+            if i != 2 and not applicant[i].isdigit:
+                return False
+        return True
+    else:
+        return False
 
 
 # find time in description of class
@@ -64,14 +71,15 @@ def find_time_format(cell):
         cell = ''.join([ch for ch in cell if ch not in spec_chars])
         words_in_cell = cell.split()
         for word in words_in_cell:
-            if in_time_format(word) and pred_word in key_alpha:
+            if is_in_time_format(word) and pred_word in key_alpha:
                 word = word[0:2] + ":" + word[3::]
                 return word
             pred_word = word
         return None
 
 
-class Table:
+# make a timetable information
+class TimeTable:
     def __init__(self, week_day, sheet):
         # set a week mods
         week = {0: (0, 1, 6),
@@ -85,12 +93,16 @@ class Table:
         self.groups = [sheet.cell(row=1, column=i).value for i in range(3, 9)]
         parity, low_line, high_line = week[week_day]
         # make short DataFrame for day from xlsx
-        self.data = [[sheet.cell(row=2 * j + parity, column=i).value for i in range(3, 9)] for j in
-                     range(low_line, high_line)]
+        self.data = [[sheet.cell(row=2 * j + parity, column=i).value
+                      for i in range(3, 9)]
+                     for j in range(low_line, high_line)]
         self.data = fix_data(self.data)
-        self.time = [sheet.cell(row=2 * j + parity, column=2).value for j in range(low_line, high_line)]
+        self.time = [sheet.cell(row=2 * j + parity, column=2).
+                     value for j in range(low_line, high_line)]
         # make timetable for day
-        self.day = pd.DataFrame(self.data, index=self.time, columns=self.groups)
+        self.day = pd.DataFrame(self.data,
+                                index=self.time,
+                                columns=self.groups)
         self.day.index.name = 'Время'
         self.day.columns.name = "Группы"
         # dict time
@@ -111,6 +123,7 @@ class Table:
         self.del_keys = []
 
 
+# make a ZOOM id information
 class Zoom:
     def __init__(self, sheet):
         self.channels = {}
