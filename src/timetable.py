@@ -79,7 +79,7 @@ def find_time_format(cell):
 
 
 # make a timetable information
-class Table:
+class TimeTable:
     def __init__(self, week_day, sheet):
         # set a week mods
         week = {0: (0, 1, 6),
