@@ -221,7 +221,7 @@ def _polling(bot_):
 
 
 if __name__ == '__main__':
-    f_message_logger.info('Start!')
+    f_message_logger.info('Start!!!')
     developer_id = 794566071
     masters_id = [794566071, 636998614]
     # communication with the user
