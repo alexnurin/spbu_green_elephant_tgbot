@@ -52,8 +52,8 @@ def distance(wrong_name, name, len_wrong_name):
 # nearest name in edit distance in students_mkn
 def chek_name(wrong_name):
     conn = engine_students.connect()
-    s = students.select()
-    results = conn.execute(s)
+    students_information = students.select()
+    results = conn.execute(students_information)
     names = []
     for information_about_student in results:
         names.append(information_about_student[1])
@@ -61,12 +61,11 @@ def chek_name(wrong_name):
     wrong_name = '0' + wrong_name
     nearest_name = '0'
     max_difference = 10000000
-    for k in range(len(names)):
-        name_0 = names[k]
-        number_of_matches = distance(wrong_name, name_0, len_wrong_name)
+    for name in names:
+        number_of_matches = distance(wrong_name, name, len_wrong_name)
         if number_of_matches <= 5 and number_of_matches < max_difference:
             max_difference = number_of_matches
-            nearest_name = names[k]
+            nearest_name = name
     if max_difference <= 5:
         return True, nearest_name
     else:
@@ -76,16 +75,16 @@ def chek_name(wrong_name):
 # add student to "students_spbu_real (5).db"
 def register_student(students_name: str, student_id: int):
     conn = engine_students.connect()
-    stmt = students.update().where(students.c.name == students_name).values(telega_id=str(student_id))
-    conn.execute(stmt)
+    students_add = students.update().where(students.c.name == students_name).values(telega_id=str(student_id))
+    conn.execute(students_add)
     f_data_logger.info('Зарегистрировался студент: ' + students_name + '. id: ' + str(student_id))
 
 
 # delete student from "students_spbu_real (5).db"
 def unregister_student(student_id: int):
     conn = engine_students.connect()
-    stmt = students.update().where(students.c.telega_id == str(student_id)).values(telega_id='0')
-    conn.execute(stmt)
+    students_delete = students.update().where(students.c.telega_id == str(student_id)).values(telega_id='0')
+    conn.execute(students_delete)
     f_data_logger.info('Отписался студент с id: ' + str(student_id))
 
 
@@ -93,8 +92,8 @@ def unregister_student(student_id: int):
 def check_student_uniqueness(student_id: int) -> bool:
     results_empty = True
     conn = engine_students.connect()
-    s = students.select().where(students.c.telega_id == str(student_id))
-    results = conn.execute(s)
+    student_check_uniq = students.select().where(students.c.telega_id == str(student_id))
+    results = conn.execute(student_check_uniq)
     # check for emptiness
     for value in results:
         results_empty = False
@@ -116,8 +115,8 @@ def get_students_id_list(groups: list) -> list:
     all_id_from_groups = []
     conn = engine_students.connect()
     for group in groups:
-        s = students.select().where(students.c.student_group == group)
-        results = conn.execute(s)
+        get_students_id = students.select().where(students.c.student_group == group)
+        results = conn.execute(get_students_id)
         for value in results:
             if value[4] != '0':
                 all_id_from_groups.append(value[4])
@@ -132,8 +131,8 @@ def register_teacher(user_id: int, password: str):
     """
     results_empty = True
     conn = engine_teachers.connect()
-    s = teachers.select().where(teachers.c.password_t == password)
-    results = conn.execute(s)
+    teachers_add = teachers.select().where(teachers.c.password_t == password)
+    results = conn.execute(teachers_add)
     for value in results:
         results_empty = False
     if not results_empty:
@@ -153,8 +152,8 @@ def get_teacher_name(teacher_id: int):
     """
     teacher_name = "None"
     conn = engine_teachers.connect()
-    s = teachers.select().where(teachers.c.teachers_authentication == teacher_id)
-    results = conn.execute(s)
+    get_name = teachers.select().where(teachers.c.teachers_authentication == teacher_id)
+    results = conn.execute(get_name)
     for value in results:
         teacher_name = value[1]
     if teacher_name != "None":
@@ -163,4 +162,5 @@ def get_teacher_name(teacher_id: int):
     else:
         f_data_logger.info('Имя не найдено, id: ' + str(teacher_id))
         return False, "developer"
+
 
