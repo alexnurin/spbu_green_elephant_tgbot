@@ -24,6 +24,55 @@ teachers = Table(
 )
 
 
+# edit distance algo
+def distance(wrong_name, name, len_wrong_name):
+    len_name = len(name)
+    name = '0' + name
+    array_of_matches = []
+    for i in range(len_name + 1):
+        table = []
+        for j in range(len_wrong_name + 1):
+            table.append((max(len_name, len_wrong_name) + 1))
+        array_of_matches.append(table)
+    for i in range(len_wrong_name + 1):
+        array_of_matches[0][i] = i
+    for i in range(len_name + 1):
+        array_of_matches[i][0] = i
+    for i in range(1, len_name + 1):
+        for j in range(1, len_wrong_name + 1):
+            if wrong_name[j] == name[i]:
+                array_of_matches[i][j] = array_of_matches[i - 1][j - 1]
+            else:
+                array_of_matches[i][j] = 1 + min(array_of_matches[i - 1][j], array_of_matches[i - 1][j - 1],
+                                                 array_of_matches[i][j - 1])
+    number_of_matches = array_of_matches[len_name][len_wrong_name]
+    return number_of_matches
+
+
+# nearest name in edit distance in students_mkn
+def chek_name(wrong_name):
+    conn = engine_students.connect()
+    s = students.select()
+    results = conn.execute(s)
+    names = []
+    for information_about_student in results:
+        names.append(information_about_student[1])
+    len_wrong_name = len(wrong_name)
+    wrong_name = '0' + wrong_name
+    nearest_name = '0'
+    max_difference = 10000000
+    for k in range(len(names)):
+        name_0 = names[k]
+        number_of_matches = distance(wrong_name, name_0, len_wrong_name)
+        if number_of_matches <= 5 and number_of_matches < max_difference:
+            max_difference = number_of_matches
+            nearest_name = names[k]
+    if max_difference <= 5:
+        return True, nearest_name
+    else:
+        return False, "empty"
+
+
 # add student to "students_spbu_real (5).db"
 def register_student(students_name: str, student_id: int):
     conn = engine_students.connect()

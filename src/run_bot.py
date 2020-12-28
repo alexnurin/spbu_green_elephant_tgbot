@@ -96,7 +96,7 @@ def help_message(message):
 зарегистрированный преподаватель получает 
 возможность делать объявления для зарегистрированных
 студентов)
-/get_links
+/get_links - получить полезные ссылки
 ''')
 
 
@@ -141,8 +141,12 @@ def help_student(message):
 
 def add_to_users(message):
     name = message.text
-    register_student(name, message.chat.id)
-    bot.send_message(message.chat.id, "Готово!")
+    is_in_students_mkn, name = chek_name(name)
+    if is_in_students_mkn:
+        register_student(name, message.chat.id)
+        bot.send_message(message.chat.id, "Готово!")
+    else:
+        bot.send_message(message.chat.id, "Имени нет в базе данных!")
 
 
 def pop_from_users(message):
