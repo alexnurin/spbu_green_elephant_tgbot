@@ -1,15 +1,13 @@
-Установка и запуск
-
-    git clone https://github.com/alexnurin/spbu_green_elephant_tgbot.git
+    Бот СПБГУ МКН 1
+    
+    @spbu_chat_bot 
+    
+    1)Загрузка библиотек из requirements.txt
+    
+    2)Запуск бота из run_bot.py
+    
+    3)Бот лежит на сервере https://www.pythonanywhere.com
+    
+    
+    
  
-    cd spbu_green_elephant_tgbot
-    
-    git checkout telebot
-    
-    pip install -r requirements.txt
-    
-    cd src
-    
-    echo "***" > secret.py
- 
-    python bot_run.py
